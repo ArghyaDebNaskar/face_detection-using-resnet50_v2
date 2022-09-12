@@ -1,0 +1,37 @@
+##making of model:
+from keras.layers import Input, Lambda, Dense, Flatten
+from keras.models import Model
+#from keras.applications.vgg16 import VGG16
+#from keras.applications.vgg19 import VGG19
+from keras.applications.inception_resnet_v2 import InceptionResNetV2
+from keras.preprocessing import image
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+import numpy as np
+from glob import glob
+import matplotlib.pyplot as plt
+import tensorflow as tf
+image_size=[224,224]
+train_path=r"E:\Jupyter\Dataset\Train"
+valid_path=r"E:\Jupyter\Dataset\Test"
+inception_resnet_v2=InceptionResNetV2(input_shape=image_size+[3],include_top=False,weights='imagenet')
+for layer in inception_resnet_v2.layers:
+    layer.trainable=False
+folders=glob(r"E:\Jupyter\Dataset\Train\*")
+x=Flatten()(inception_resnet_v2.output)
+prediction=Dense(len(folders),activation='softmax')(x)
+model=Model(inputs=inception_resnet_v2.input,outputs=prediction)
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),loss=tf.keras.losses.BinaryCrossentropy())
+from keras.preprocessing.image import ImageDataGenerator
+train_datagen=ImageDataGenerator(rescale=1./255,shear_range=0.2,zoom_range=0.2,horizontal_flip=True)
+test_datagen=ImageDataGenerator(rescale=1./255)
+training_set=train_datagen.flow_from_directory(r"E:\Jupyter\Dataset\Train",target_size=(224,224),batch_size=32,class_mode='categorical')
+test_set=test_datagen.flow_from_directory(r"E:\Jupyter\Dataset\Test",target_size=(224,224),batch_size=32,class_mode='categorical')
+r=model.fit_generator(training_set,validation_data=test_set,epochs=5,steps_per_epoch=len(training_set),validation_steps=len(test_set))
+plt.plot(r.history['loss'],label='train loss')
+#plt.plot(r.history['val loss'],label='val loss')
+plt.legend()
+plt.show()
+plt.savefig('Lossal_loss')
+model.save('facefeatures_inception_resnet_v2.h4')
+print("Done")
